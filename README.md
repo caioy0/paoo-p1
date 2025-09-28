@@ -1,7 +1,12 @@
-# paoo-p1
-Nomes: Caio Yugo Saeda Uemura - 2040482312014
+# Projeto p1 - PAOO 20252
+Nome: Caio Yugo Saeda Uemura - 2040482312014
 
-## pacotes do node
-express; dotenv; axios
+## Pacotes node
+- [**express**](https://www.npmjs.com/package/express)
+- [**dotenv**](https://www.npmjs.com/package/dotenv) 
+- [**axios**](https://www.npmjs.com/package/axios) 
 
--> nao esqueca de rodar: npm i
+## APIs utilizadas
+
+- [**OpenWeather**](https://openweathermap.org/api)
+- [**NewsAPI**](https://newsapi.org)

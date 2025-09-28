@@ -1,53 +1,128 @@
-// src/index.js -> Exercicios 1 e 2
-// Exercicio 1:
+// src/index.js
 require('dotenv').config({ path: '../.env' });
+const express = require('express');
+const app = express();
+app.use(express.json());
 const axios = require('axios');
 
-// Link
+// dotenv
 const PROTOCOL = process.env.PROTOCOL;
 const BASE_URL = process.env.BASE_URL;
 const BASE_URL2 = process.env.BASE_URL2;
+const BASE_URL3 = process.env.BASE_URL3;
 const APPID = process.env.APPID;
-const Q = process.env.Q;
 const LIMIT = process.env.LIMIT;
+const NEWSAPI = process.env.NEWSAPI;
 
-// Url
-const URL = `${PROTOCOL}://${BASE_URL}?appid=${APPID}&q=${Q}&limit=${LIMIT}`;
-// console.log('URL: ', URL);
-
-// axios retorna promise
-const promiseResult = axios.get(URL);
-// res e erro sao objeto
-promiseResult
-    .then((res)=> {
-      // console.log(res.data); // .data conteudo json
+// EX 1 : Lat e Lon
+app.get('/:city/coordenadas', (req, res) => {
+  const cidadeParam = req.params.city;
+  const URL = `${PROTOCOL}://${BASE_URL}?appid=${APPID}&q=${cidadeParam}&limit=${LIMIT}`;
+  
+  const promiseResult = axios.get(URL);
+  promiseResult
+    .then(res2 => {
+      const cidade = res2.data[0];
       console.log(`Ex1:`); 
-      console.log(`Cidade: ${res.data[0].name}`); 
-      console.log(`Latitude: ${res.data[0].lat}`); 
-      console.log(`Longitude: ${res.data[0].lon}`); 
-    }) 
-    .catch(erro=>console.log(`erro: ${erro}`));
-    
-// ------------------------------  
-// Exercicio 2
-async function getCondicoes(){
-  try{
-    const res = await axios.get(URL); // refazer promise
-    const cidade = res.data[0]; // pegar data do ex1 e converter
-    const LAT = cidade.lat;
-    const LON = cidade.lon;
+      console.log(`Cidade: ${cidade.name}`); 
+      console.log(`Latitude: ${cidade.lat}`);
+      console.log(`Longitude: ${cidade.lon}`);
 
-    const URL2 = `${PROTOCOL}://${BASE_URL2}?appid=${APPID}&lat=${LAT}&lon=${LON}&units=metric&lang=pt_br`;
-    
-    const res2 = await axios.get(URL2);
-    // console.log(res2.data);
+      // https://expressjs.com/pt-br/api.html#res.json <- como eu formatei o json
+      res.status(200).json({
+        cidade: cidade.name,
+        pais: cidade.country,
+        latitude: cidade.lat,
+        longitude: cidade.lon
+      });
+    })
+    .catch(erro => {
+      res.status(500).json({ erro: erro.message });
+    });
+});
+  
+// EX 2 : lat+lon = status da cordenada 
+app.get('/:city/weather', async (req, res) => {
+  try {
+    const cidadeParam = req.params.city;
+
+    // Pega coordenadas
+    const URL = `${PROTOCOL}://${BASE_URL}?appid=${APPID}&q=${cidadeParam}&limit=${LIMIT}`;
+    const res2 = await axios.get(URL);
+    const cidade = res2.data[0];
+
+    // Obter clima
+    const URL2 = `${PROTOCOL}://${BASE_URL2}?appid=${APPID}&lat=${cidade.lat}&lon=${cidade.lon}&units=metric&lang=pt_br`;
+    const res3 = await axios.get(URL2);
+
     console.log(`Ex2:`);
-    console.log(`Sensacao termica: ${res2.data.main.feels_like}`);
-    console.log(`Descricao: ${res2.data.weather[0].description}`);
-    
-    } catch(erro){
-        console.log(`Erro: ${erro}`);
-    }
-}
+    console.log(`Sensacao termica: ${res3.data.main.feels_like}`);
+    console.log(`Descricao: ${res3.data.weather[0].description}`);
 
-getCondicoes();
+    // Enviar resposta correta
+    res.status(200).json({
+      sensacao_termica: res3.data.main.feels_like,
+      descricao: res3.data.weather[0].description
+    });
+
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+  
+// EX 3 : API News
+app.get('/:city/news', async (req, res) => {
+  try {
+    const cidadeParam = req.params.city;
+    const URL3 = `${PROTOCOL}://${BASE_URL3}?q=${cidadeParam}&apiKey=${NEWSAPI}&language=pt&pageSize=2`;
+    const res2 = await axios.get(URL3); 
+    console.log(res2.data);
+
+    res.status(200).json({
+      cidade: cidadeParam,
+      noticias: res2.data.articles
+    });
+
+    } catch (erro) {
+      console.log(`erro: ${erro}`)
+      res.status(500).json({ erro: erro.message });
+    }
+});
+
+// API route completa
+app.get ('/:city', async function getCidade(req, res) {
+  try {
+    const cidadeParam = req.params.city;
+    const URL = `${PROTOCOL}://${BASE_URL}?appid=${APPID}&q=${cidadeParam}&limit=${LIMIT}`;
+    const res2 = await axios.get(URL);
+    const cidade = res2.data[0];
+    const URL2 = `${PROTOCOL}://${BASE_URL2}?appid=${APPID}&lat=${cidade.lat}&lon=${cidade.lon}&units=metric&lang=pt_br`;
+    const res3 = await axios.get(URL2);
+    const URL3 = `${PROTOCOL}://${BASE_URL3}?q=${cidadeParam}&apiKey=${NEWSAPI}&language=pt&pageSize=2`;
+    const res4 = await axios.get(URL3); 
+
+    console.log(res4.data);
+    console.log(`Cidade: ${cidade.name}`); 
+    console.log(`Latitude: ${cidade.lat}`);
+    console.log(`Longitude: ${cidade.lon}`);
+    console.log(`Sensacao termica: ${res3.data.main.feels_like}`);
+    console.log(`Descricao: ${res3.data.weather[0].description}`);
+
+    res.status(200).json({
+        cidade: cidade.name,
+        pais: cidade.country,
+        latitude: cidade.lat,
+        longitude: cidade.lon,
+        sensacao_termica: res3.data.main.feels_like,
+        descricao: res3.data.weather[0].description,
+        noticias: res4.data.articles
+      });
+
+  } catch (error) {
+    console.log(`Erro: ${error}`);
+  }  
+})
+
+// Express
+const port = 4000;
+app.listen(port, () => console.log(`Projeto P1; porta: ${port}`));
